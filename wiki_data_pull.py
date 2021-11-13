@@ -1,16 +1,16 @@
-from google.cloud.bigquery import dataset
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 import re
-import json
+import numpy as np
 import os
 from google.cloud import bigquery
 
 # Variables
 url_2000s = "https://en.wikipedia.org/wiki/List_of_school_shootings_in_the_United_States"
 url_1900s = "https://en.wikipedia.org/wiki/List_of_school_shootings_in_the_United_States_(before_2000)"
+# url_pop = "https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"
 gcp_project = "twitter-project-328515"
 bq_dataset = "wiki"
 
@@ -25,7 +25,7 @@ regex_pattern = '([A-Za-z, 0-9]+)\\n'
 regex_loc = '([A-Za-z, .]*)\\n'
 regex_num = '(^\d?\d?\d?\d)'
 regex_des = '(?<![\\\[])[^\\\[\]]+'
-regex_school1 = '(((([A-Z]\w+ )?([A-Z]\w+ )?([A-Z])(\w+-\w+)?(\w*\.\w*\. )?([^(a|A)t ]\w* )?([A-Z][\w+ )?([^at ]\w+\,? )?(\w\.)?(\w+\. )?)|([A-Z]\w+ )([A-Z]\w+ )?([A-Z]\w+ )?)(((e|E)lementary |(m|M)iddle |(h|H)igh )?((s|S)chool)|(c|C)ollege|(u|U)niversity|(c|C)ollegiate|(i|I)nstitute (of )? ([A-Z]\w+ )|(s|S)tadium|(C)ampus|(a|A)cademy (of )?([A-Z]\w+ )?([A-Z]\w+ ?)?([A-Z]\w+)?)|(school bus)|(([A-Z]\w+ )?((u|U)niversity |(c|C)ollege |(a|A)cademy |(i|I)nstitute )((of )(the )?(([A-Z])(\w+ ?))([A-Z]\w+ )?([A-Z]\w+)?))|(s|S)tadium|(\w+ )(Elementary)|(UCLA))'
+regex_school1 = '(((([A-Z]\w+ )?([A-Z]\w+ )?([A-Z])(\w+-\w+)?(\w*\.\w*\. )?([^(a|A)t ]\w* )?([A-Z][\w+ )?([^at ]\w+\,? )?(\w\.)?(\w+\. )?)|([A-Z]\w+ )([A-Z]\w+ )?([A-Z]\w+ )?)(((e|E)lementary |(m|M)iddle |(h|H)igh )?((s|S)chool)|(c|C)ollege|(t|T)ech |(u|U)niversity|(c|C)ollegiate|(i|I)nstitute (of )? ([A-Z]\w+ )|(s|S)tadium|(C)ampus|(a|A)cademy (of )?([A-Z]\w+ )?([A-Z]\w+ ?)?([A-Z]\w+)?)|(school bus)|(([A-Z]\w+ )?((u|U)niversity |(c|C)ollege |(a|A)cademy |(i|I)nstitute )((of )(the )?(([A-Z])(\w+ ?))([A-Z]\w+ )?([A-Z]\w+)?))|(s|S)tadium|(\w+ )(Elementary)|(UCLA))'
 regex_school2 = '(?<=At |An )[A-Za-z]\w*\.? ?\w+\.? ?\w+\.? ?\w+\.?'
 regex_insti = '(\w+ (?=(s|S)chool)\w+|(c|C)ollege|(u|U)niversity|(c|C)ollegiate|(i|I)nstitute (of )? ([A-Z]\w+ )|(C)ampus|(a|A)cademy)'
 regex_state = '(?<=\, )[A-Z]\w*\.? ?\w+\.? ?'
@@ -75,7 +75,6 @@ def _extract_insti(text):
     insti = re.findall(regex_insti, text)
     return insti
 
-
 # Function to create dict
 def parse_table_rows(table_rows):
     
@@ -110,6 +109,7 @@ def parse_table_rows(table_rows):
                 if school == []:
                     print(f"No Data on {ix}th entry for school")
                     school = pd.NA
+                    insti = pd.NA
                 else:
                     school = school[0][0]
                     
@@ -139,9 +139,10 @@ def parse_table_rows(table_rows):
                     IIS = False
                 death = _extract_death(death_raw)
                 if injury_raw == "?\n":
-                    injury = pd.NA
+                    injury = np.nan
                 else:
                     injury = _extract_injury(injury_raw)
+
                 description = _extract_description(description_raw)
                 
                 row_data_raw = {'Date': date_raw, 
@@ -169,6 +170,7 @@ def parse_table_rows(table_rows):
     except:
         print("No data")
 
+
 response_19 = requests.get(url_1900s)
 response_20 = requests.get(url_2000s)
 
@@ -187,7 +189,7 @@ df_20_raw = pd.DataFrame.from_dict(t_s_20_raw, orient = 'index')
 df_19 = pd.DataFrame.from_dict(t_s_19, orient = 'index')
 df_20 = pd.DataFrame.from_dict(t_s_20, orient = 'index')
 
-print(df_20["Institution_Type"])
+print(df_20)
 
 df_20_raw.to_gbq(destination_table="wiki.wiki_20_raw", project_id=gcp_project, if_exists="replace")
 df_19_raw.to_gbq(destination_table="wiki.wiki_19_raw", project_id=gcp_project, if_exists="replace")
