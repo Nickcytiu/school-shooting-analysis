@@ -13,7 +13,7 @@ url_1900s = "https://en.wikipedia.org/wiki/List_of_school_shootings_in_the_Unite
 # url_pop = "https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"
 gcp_project = "twitter-project-328515"
 bq_dataset = "wiki"
-
+# nick
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r'sandbox/master_key.json'
 
 # Connection
